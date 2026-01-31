@@ -300,21 +300,27 @@ public class OpenAiLlmService : ILlmService
         // Extract date
         DateTime date = DateTime.Today;
         
-        if (lowerMessage.Contains("tomorrow"))
+        // Tomorrow in EN/IT/DE
+        if (lowerMessage.Contains("tomorrow") || lowerMessage.Contains("domani") || lowerMessage.Contains("morgen"))
         {
             date = DateTime.Today.AddDays(1);
         }
-        else if (lowerMessage.Contains("day after tomorrow"))
+        // Day after tomorrow in EN/IT/DE
+        else if (lowerMessage.Contains("day after tomorrow") || lowerMessage.Contains("dopodomani") || 
+                 lowerMessage.Contains("übermorgen"))
         {
             date = DateTime.Today.AddDays(2);
         }
-        else if (lowerMessage.Contains("next week"))
+        // Next week in EN/IT/DE
+        else if (lowerMessage.Contains("next week") || lowerMessage.Contains("settimana prossima") || 
+                 lowerMessage.Contains("nächste woche"))
         {
             date = DateTime.Today.AddDays(7);
         }
-        else if (Regex.IsMatch(lowerMessage, @"in (\d+) days?"))
+        // "in X days" in EN/IT/DE
+        else if (Regex.IsMatch(lowerMessage, @"in (\d+) (days?|giorni|tagen?)"))
         {
-            var match = Regex.Match(lowerMessage, @"in (\d+) days?");
+            var match = Regex.Match(lowerMessage, @"in (\d+) (days?|giorni|tagen?)");
             if (int.TryParse(match.Groups[1].Value, out int days))
             {
                 date = DateTime.Today.AddDays(days);
@@ -353,18 +359,39 @@ public class OpenAiLlmService : ILlmService
     private static bool TryParseDayOfWeek(string message, out DateTime result)
     {
         result = DateTime.Today;
+        
+        // Days of week in English, Italian, and German
         var daysOfWeek = new Dictionary<string, DayOfWeek>
         {
+            // English
             { "monday", DayOfWeek.Monday },
             { "tuesday", DayOfWeek.Tuesday },
             { "wednesday", DayOfWeek.Wednesday },
             { "thursday", DayOfWeek.Thursday },
             { "friday", DayOfWeek.Friday },
             { "saturday", DayOfWeek.Saturday },
-            { "sunday", DayOfWeek.Sunday }
+            { "sunday", DayOfWeek.Sunday },
+            // Italian
+            { "lunedì", DayOfWeek.Monday }, { "lunedi", DayOfWeek.Monday },
+            { "martedì", DayOfWeek.Tuesday }, { "martedi", DayOfWeek.Tuesday },
+            { "mercoledì", DayOfWeek.Wednesday }, { "mercoledi", DayOfWeek.Wednesday },
+            { "giovedì", DayOfWeek.Thursday }, { "giovedi", DayOfWeek.Thursday },
+            { "venerdì", DayOfWeek.Friday }, { "venerdi", DayOfWeek.Friday },
+            { "sabato", DayOfWeek.Saturday },
+            { "domenica", DayOfWeek.Sunday },
+            // German
+            { "montag", DayOfWeek.Monday },
+            { "dienstag", DayOfWeek.Tuesday },
+            { "mittwoch", DayOfWeek.Wednesday },
+            { "donnerstag", DayOfWeek.Thursday },
+            { "freitag", DayOfWeek.Friday },
+            { "samstag", DayOfWeek.Saturday },
+            { "sonntag", DayOfWeek.Sunday }
         };
 
-        bool isNextWeek = message.Contains("next ");
+        // "next" in EN/IT/DE
+        bool isNextWeek = message.Contains("next ") || message.Contains("prossimo") || 
+                          message.Contains("prossima") || message.Contains("nächste");
         
         foreach (var (dayName, dayOfWeek) in daysOfWeek)
         {
@@ -391,8 +418,10 @@ public class OpenAiLlmService : ILlmService
     {
         result = DateTime.Today;
         
+        // Months in English, Italian, and German
         var months = new Dictionary<string, int>
         {
+            // English
             { "january", 1 }, { "jan", 1 },
             { "february", 2 }, { "feb", 2 },
             { "march", 3 }, { "mar", 3 },
@@ -404,16 +433,38 @@ public class OpenAiLlmService : ILlmService
             { "september", 9 }, { "sep", 9 }, { "sept", 9 },
             { "october", 10 }, { "oct", 10 },
             { "november", 11 }, { "nov", 11 },
-            { "december", 12 }, { "dec", 12 }
+            { "december", 12 }, { "dec", 12 },
+            // Italian
+            { "gennaio", 1 }, { "gen", 1 },
+            { "febbraio", 2 },
+            { "marzo", 3 },
+            { "aprile", 4 },
+            { "maggio", 5 }, { "mag", 5 },
+            { "giugno", 6 }, { "giu", 6 },
+            { "luglio", 7 }, { "lug", 7 },
+            { "agosto", 8 }, { "ago", 8 },
+            { "settembre", 9 }, { "set", 9 },
+            { "ottobre", 10 }, { "ott", 10 },
+            { "novembre", 11 },
+            { "dicembre", 12 }, { "dic", 12 },
+            // German
+            { "januar", 1 },
+            { "februar", 2 },
+            { "märz", 3 }, { "marz", 3 },
+            { "mai", 5 },
+            { "juni", 6 },
+            { "juli", 7 },
+            { "oktober", 10 },
+            { "dezember", 12 }
         };
 
         foreach (var (monthName, monthNum) in months)
         {
-            // Match patterns like "February 3", "Feb 3rd", "3rd of February", "3 February"
+            // Match patterns like "February 3", "Feb 3rd", "3rd of February", "3 February", "3. Februar", "3 febbraio"
             var patterns = new[]
             {
-                $@"{monthName}\s+(\d{{1,2}})(?:st|nd|rd|th)?",  // February 3rd
-                $@"(\d{{1,2}})(?:st|nd|rd|th)?\s+(?:of\s+)?{monthName}"  // 3rd of February, 3 February
+                $@"{monthName}\s+(\d{{1,2}})(?:st|nd|rd|th|°)?",  // February 3rd, febbraio 3
+                $@"(\d{{1,2}})(?:st|nd|rd|th|°|\.)?\s*(?:of\s+|di\s+)?{monthName}"  // 3rd of February, 3 febbraio, 3. Februar
             };
 
             foreach (var pattern in patterns)
