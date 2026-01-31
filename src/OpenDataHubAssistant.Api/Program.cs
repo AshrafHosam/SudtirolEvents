@@ -1,5 +1,6 @@
 using OpenDataHubAssistant.Infrastructure;
 using OpenDataHubAssistant.Infrastructure.Configuration;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,8 +16,12 @@ if (!string.IsNullOrEmpty(openAiApiKey))
     builder.Configuration[$"{OpenAiSettings.SectionName}:ApiKey"] = openAiApiKey;
 }
 
-// Add controllers
-builder.Services.AddControllers();
+// Add controllers with JSON options to serialize enums as strings
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 // Add Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();

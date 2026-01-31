@@ -221,7 +221,7 @@ public class OpenAiLlmService : ILlmService
     {
         var sb = new StringBuilder();
         sb.AppendLine($"Weather in {weather.LocationName} on {weather.Timestamp:MMM dd}:");
-        sb.AppendLine($"- Temperature: {weather.TemperatureC:F1}°C");
+        sb.AppendLine($"- Temperature: {weather.TemperatureC:F1}ï¿½C");
         sb.AppendLine($"- Conditions: {weather.ConditionText}");
         sb.AppendLine($"- Classification: {string.Join(", ", classifications)}");
         sb.AppendLine();
@@ -248,7 +248,7 @@ public class OpenAiLlmService : ILlmService
         sb.AppendLine($"User asked: \"{userMessage}\"");
         sb.AppendLine();
         sb.AppendLine($"Current data for {weather.LocationName} on {weather.Timestamp:MMM dd, yyyy}:");
-        sb.AppendLine($"Weather: {weather.TemperatureC:F1}°C, {weather.ConditionText}");
+        sb.AppendLine($"Weather: {weather.TemperatureC:F1}ï¿½C, {weather.ConditionText}");
         sb.AppendLine($"Wind: {weather.WindKph:F0} km/h, Precipitation: {weather.PrecipitationMm:F1}mm");
         sb.AppendLine($"Classification: {string.Join(", ", classifications)}");
         sb.AppendLine();
@@ -299,17 +299,38 @@ public class OpenAiLlmService : ILlmService
 
         // Extract date
         DateTime date = DateTime.Today;
+        
         if (lowerMessage.Contains("tomorrow"))
         {
             date = DateTime.Today.AddDays(1);
+        }
+        else if (lowerMessage.Contains("day after tomorrow"))
+        {
+            date = DateTime.Today.AddDays(2);
         }
         else if (lowerMessage.Contains("next week"))
         {
             date = DateTime.Today.AddDays(7);
         }
+        else if (Regex.IsMatch(lowerMessage, @"in (\d+) days?"))
+        {
+            var match = Regex.Match(lowerMessage, @"in (\d+) days?");
+            if (int.TryParse(match.Groups[1].Value, out int days))
+            {
+                date = DateTime.Today.AddDays(days);
+            }
+        }
+        else if (TryParseDayOfWeek(lowerMessage, out DateTime dayOfWeekDate))
+        {
+            date = dayOfWeekDate;
+        }
+        else if (TryParseMonthDay(lowerMessage, out DateTime monthDayDate))
+        {
+            date = monthDayDate;
+        }
         else
         {
-            // Try to find a date pattern
+            // Try to find a date pattern like dd/mm or dd-mm-yyyy
             var dateMatch = Regex.Match(message, @"\b(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?\b");
             if (dateMatch.Success)
             {
@@ -329,6 +350,96 @@ public class OpenAiLlmService : ILlmService
         return (location, date);
     }
 
+    private static bool TryParseDayOfWeek(string message, out DateTime result)
+    {
+        result = DateTime.Today;
+        var daysOfWeek = new Dictionary<string, DayOfWeek>
+        {
+            { "monday", DayOfWeek.Monday },
+            { "tuesday", DayOfWeek.Tuesday },
+            { "wednesday", DayOfWeek.Wednesday },
+            { "thursday", DayOfWeek.Thursday },
+            { "friday", DayOfWeek.Friday },
+            { "saturday", DayOfWeek.Saturday },
+            { "sunday", DayOfWeek.Sunday }
+        };
+
+        bool isNextWeek = message.Contains("next ");
+        
+        foreach (var (dayName, dayOfWeek) in daysOfWeek)
+        {
+            if (message.Contains(dayName))
+            {
+                var today = DateTime.Today;
+                int daysUntil = ((int)dayOfWeek - (int)today.DayOfWeek + 7) % 7;
+                
+                // If it's the same day and "next" is specified, or if daysUntil is 0, go to next week
+                if (daysUntil == 0 || isNextWeek)
+                {
+                    daysUntil += 7;
+                }
+                
+                result = today.AddDays(daysUntil);
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    private static bool TryParseMonthDay(string message, out DateTime result)
+    {
+        result = DateTime.Today;
+        
+        var months = new Dictionary<string, int>
+        {
+            { "january", 1 }, { "jan", 1 },
+            { "february", 2 }, { "feb", 2 },
+            { "march", 3 }, { "mar", 3 },
+            { "april", 4 }, { "apr", 4 },
+            { "may", 5 },
+            { "june", 6 }, { "jun", 6 },
+            { "july", 7 }, { "jul", 7 },
+            { "august", 8 }, { "aug", 8 },
+            { "september", 9 }, { "sep", 9 }, { "sept", 9 },
+            { "october", 10 }, { "oct", 10 },
+            { "november", 11 }, { "nov", 11 },
+            { "december", 12 }, { "dec", 12 }
+        };
+
+        foreach (var (monthName, monthNum) in months)
+        {
+            // Match patterns like "February 3", "Feb 3rd", "3rd of February", "3 February"
+            var patterns = new[]
+            {
+                $@"{monthName}\s+(\d{{1,2}})(?:st|nd|rd|th)?",  // February 3rd
+                $@"(\d{{1,2}})(?:st|nd|rd|th)?\s+(?:of\s+)?{monthName}"  // 3rd of February, 3 February
+            };
+
+            foreach (var pattern in patterns)
+            {
+                var match = Regex.Match(message, pattern, RegexOptions.IgnoreCase);
+                if (match.Success && int.TryParse(match.Groups[1].Value, out int day))
+                {
+                    var year = DateTime.Today.Year;
+                    try
+                    {
+                        result = new DateTime(year, monthNum, day);
+                        // If the date is in the past, assume next year
+                        if (result < DateTime.Today)
+                        {
+                            result = result.AddYears(1);
+                        }
+                        return true;
+                    }
+                    catch { }
+                }
+            }
+        }
+        
+        return false;
+    }
+
     private static string GenerateFallbackExplanation(
         WeatherDto weather,
         List<WeatherClassification> classifications,
@@ -341,13 +452,13 @@ public class OpenAiLlmService : ILlmService
         if (isBadWeather)
         {
             sb.Append($"Given the current weather conditions in {weather.LocationName} ");
-            sb.Append($"({weather.TemperatureC:F0}°C, {weather.ConditionText}), ");
+            sb.Append($"({weather.TemperatureC:F0}ï¿½C, {weather.ConditionText}), ");
             sb.Append("we recommend focusing on indoor activities. ");
         }
         else
         {
             sb.Append($"The weather in {weather.LocationName} looks great ");
-            sb.Append($"({weather.TemperatureC:F0}°C, {weather.ConditionText})! ");
+            sb.Append($"({weather.TemperatureC:F0}ï¿½C, {weather.ConditionText})! ");
             sb.Append("It's a perfect day to explore outdoor activities. ");
         }
 
@@ -383,7 +494,7 @@ public class OpenAiLlmService : ILlmService
 
         sb.AppendLine($"Here's what I found for {location} {dateStr}!");
         sb.AppendLine();
-        sb.AppendLine($"**Weather:** {weather.TemperatureC:F0}°C, {weather.ConditionText}");
+        sb.AppendLine($"**Weather:** {weather.TemperatureC:F0}ï¿½C, {weather.ConditionText}");
 
         if (isBadWeather)
         {
