@@ -1,0 +1,81 @@
+<div class="chat-container">
+  <div class="chat-header">
+    <h1>🌤️ Weather & Activity Chat</h1>
+    <p class="subtitle">Ask me about weather and activities in South Tyrol</p>
+    <span class="status-badge" [class.online]="llmAvailable" [class.offline]="!llmAvailable">
+      {{ llmAvailable ? '✓ AI Enabled' : '⚡ Basic Mode' }}
+    </span>
+  </div>
+
+  <div class="messages-container" #messagesContainer>
+    <div *ngFor="let message of messages" 
+         class="message" 
+         [class.user-message]="message.isUser"
+         [class.assistant-message]="!message.isUser">
+      <div class="message-bubble">
+        <div class="message-content" [innerHTML]="message.content | lineBreaks"></div>
+        
+        <!-- Show recommendation data if available -->
+        <div *ngIf="message.data" class="recommendation-data">
+          <!-- Weather summary -->
+          <div *ngIf="message.data.weather" class="weather-card">
+            <h4>📍 {{ message.data.weather.locationName }}</h4>
+            <div class="weather-info">
+              <span class="temp">{{ message.data.weather.temperatureC | number:'1.0-0' }}°C</span>
+              <span class="condition">{{ message.data.weather.conditionText }}</span>
+            </div>
+            <div class="classifications">
+              <span *ngFor="let c of message.data.classifications" 
+                    class="badge" 
+                    [ngClass]="getClassificationBadgeClass(c)">
+                {{ c }}
+              </span>
+            </div>
+          </div>
+          
+          <!-- Recommendations -->
+          <div *ngIf="message.data.recommendations?.length" class="recommendations-list">
+            <h4>🎯 Recommended Activities</h4>
+            <div *ngFor="let rec of message.data.recommendations" class="rec-item">
+              <span class="rec-icon">{{ rec.isIndoor ? '🏛️' : '🌲' }}</span>
+              <div class="rec-details">
+                <strong>{{ rec.name }}</strong>
+                <span class="rec-type">{{ rec.type }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <span class="timestamp">{{ message.timestamp | date:'shortTime' }}</span>
+      </div>
+    </div>
+
+    <!-- Loading indicator -->
+    <div *ngIf="isLoading" class="message assistant-message">
+      <div class="message-bubble loading">
+        <div class="typing-indicator">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-container">
+    <textarea
+      [(ngModel)]="userInput"
+      (keypress)="onKeyPress($event)"
+      placeholder="Ask about weather or activities..."
+      [disabled]="isLoading"
+      rows="1"
+    ></textarea>
+    <button 
+      (click)="sendMessage()" 
+      [disabled]="!userInput.trim() || isLoading"
+      class="send-button">
+      <span *ngIf="!isLoading">Send</span>
+      <span *ngIf="isLoading">...</span>
+    </button>
+  </div>
+</div>

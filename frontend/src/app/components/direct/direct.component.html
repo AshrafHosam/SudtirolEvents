@@ -1,0 +1,162 @@
+<div class="direct-container">
+  <div class="header">
+    <h1>🔍 Direct Weather & Activity Query</h1>
+    <p>Get weather data and recommendations for South Tyrol locations</p>
+  </div>
+
+  <!-- Query Form -->
+  <div class="query-form">
+    <div class="form-section">
+      <label class="section-label">Location</label>
+      
+      <div class="location-toggle">
+        <button 
+          [class.active]="!useCustomCity" 
+          (click)="useCustomCity = false">
+          Select from list
+        </button>
+        <button 
+          [class.active]="useCustomCity" 
+          (click)="useCustomCity = true">
+          Enter custom city
+        </button>
+      </div>
+
+      <div *ngIf="!useCustomCity" class="form-field">
+        <select [(ngModel)]="selectedLocationId" [disabled]="isLoading">
+          <option *ngFor="let loc of locations" [value]="loc.id">
+            {{ loc.name }} ({{ loc.latitude | number:'1.2-2' }}, {{ loc.longitude | number:'1.2-2' }})
+          </option>
+        </select>
+      </div>
+
+      <div *ngIf="useCustomCity" class="form-field">
+        <input 
+          type="text" 
+          [(ngModel)]="customCity" 
+          placeholder="Enter city name (e.g., Bolzano, Merano)"
+          [disabled]="isLoading">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <label class="section-label">Date</label>
+      <div class="date-controls">
+        <input type="date" [(ngModel)]="selectedDate" [disabled]="isLoading">
+        <button class="quick-date" (click)="setToday()" [disabled]="isLoading">Today</button>
+        <button class="quick-date" (click)="setTomorrow()" [disabled]="isLoading">Tomorrow</button>
+      </div>
+    </div>
+
+    <button 
+      class="fetch-button" 
+      (click)="fetchData()" 
+      [disabled]="isLoading || (!selectedLocationId && !customCity.trim())">
+      <span *ngIf="!isLoading">🔄 Get Weather & Recommendations</span>
+      <span *ngIf="isLoading">Loading...</span>
+    </button>
+  </div>
+
+  <!-- Error message -->
+  <div *ngIf="error" class="error-message">
+    ⚠️ {{ error }}
+  </div>
+
+  <!-- Results -->
+  <div class="results" *ngIf="weatherData || recommendationData">
+    
+    <!-- Weather Card -->
+    <div class="result-card weather-card" *ngIf="weatherData">
+      <h2>🌤️ Weather</h2>
+      <div class="weather-main">
+        <div class="location-name">📍 {{ weatherData.weather.locationName }}</div>
+        <div class="temp-display">
+          <span class="temperature">{{ weatherData.weather.temperatureC | number:'1.0-0' }}°C</span>
+          <span class="condition">{{ weatherData.weather.conditionText }}</span>
+        </div>
+        <div class="weather-details">
+          <div class="detail-item">
+            <span class="label">💨 Wind</span>
+            <span class="value">{{ weatherData.weather.windKph | number:'1.0-0' }} km/h</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">🌧️ Precipitation</span>
+            <span class="value">{{ weatherData.weather.precipitationMm | number:'1.1-1' }} mm</span>
+          </div>
+        </div>
+        <div class="classifications">
+          <span *ngFor="let c of weatherData.classifications" 
+                class="badge" 
+                [ngClass]="getClassificationBadgeClass(c)">
+            {{ c }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recommendations Card -->
+    <div class="result-card recommendations-card" *ngIf="recommendationData">
+      <h2>🎯 Activity Recommendations</h2>
+      
+      <div class="explanation" *ngIf="recommendationData.explanation">
+        <p>{{ recommendationData.explanation }}</p>
+      </div>
+
+      <div class="recommendations-grid">
+        <div *ngFor="let rec of recommendationData.recommendations" 
+             class="recommendation-item"
+             [class.indoor]="rec.isIndoor"
+             [class.outdoor]="!rec.isIndoor">
+          <div class="rec-header">
+            <span class="rec-icon">{{ rec.isIndoor ? '🏛️' : '🌲' }}</span>
+            <span class="rec-badge">{{ rec.isIndoor ? 'Indoor' : 'Outdoor' }}</span>
+          </div>
+          <h3>{{ rec.name }}</h3>
+          <p class="rec-description">{{ rec.description }}</p>
+          <span class="rec-type">{{ rec.type }}</span>
+        </div>
+      </div>
+
+      <!-- Source Data -->
+      <div class="source-data">
+        <details>
+          <summary>View source data ({{ recommendationData.sourceEvents.length }} events, {{ recommendationData.sourcePois.length }} POIs)</summary>
+          
+          <div class="source-section" *ngIf="recommendationData.sourceEvents.length">
+            <h4>Events</h4>
+            <ul>
+              <li *ngFor="let evt of recommendationData.sourceEvents">
+                <strong>{{ evt.name }}</strong> 
+                <span class="source-meta">{{ evt.isIndoor ? '(Indoor)' : '(Outdoor)' }}</span>
+                <br>
+                <small>{{ evt.startDate | date:'shortDate' }} - {{ evt.location }}</small>
+              </li>
+            </ul>
+          </div>
+
+          <div class="source-section" *ngIf="recommendationData.sourcePois.length">
+            <h4>Points of Interest</h4>
+            <ul>
+              <li *ngFor="let poi of recommendationData.sourcePois">
+                <strong>{{ poi.name }}</strong> 
+                <span class="source-meta">({{ poi.type }})</span>
+                <br>
+                <small>{{ poi.address }}</small>
+              </li>
+            </ul>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading placeholders -->
+  <div class="results" *ngIf="isLoading">
+    <div class="result-card loading-card">
+      <div class="loading-shimmer"></div>
+    </div>
+    <div class="result-card loading-card">
+      <div class="loading-shimmer"></div>
+    </div>
+  </div>
+</div>

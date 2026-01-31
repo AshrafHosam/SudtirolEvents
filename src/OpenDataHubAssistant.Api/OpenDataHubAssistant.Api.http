@@ -1,0 +1,6 @@
+@OpenDataHubAssistant.Api_HostAddress = http://localhost:5213
+
+GET {{OpenDataHubAssistant.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
