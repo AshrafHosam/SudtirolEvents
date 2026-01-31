@@ -221,7 +221,7 @@ public class OpenAiLlmService : ILlmService
     {
         var sb = new StringBuilder();
         sb.AppendLine($"Weather in {weather.LocationName} on {weather.Timestamp:MMM dd}:");
-        sb.AppendLine($"- Temperature: {weather.TemperatureC:F1}�C");
+        sb.AppendLine($"- Temperature: {weather.TemperatureC:F1}°C");
         sb.AppendLine($"- Conditions: {weather.ConditionText}");
         sb.AppendLine($"- Classification: {string.Join(", ", classifications)}");
         sb.AppendLine();
@@ -248,7 +248,7 @@ public class OpenAiLlmService : ILlmService
         sb.AppendLine($"User asked: \"{userMessage}\"");
         sb.AppendLine();
         sb.AppendLine($"Current data for {weather.LocationName} on {weather.Timestamp:MMM dd, yyyy}:");
-        sb.AppendLine($"Weather: {weather.TemperatureC:F1}�C, {weather.ConditionText}");
+        sb.AppendLine($"Weather: {weather.TemperatureC:F1}°C, {weather.ConditionText}");
         sb.AppendLine($"Wind: {weather.WindKph:F0} km/h, Precipitation: {weather.PrecipitationMm:F1}mm");
         sb.AppendLine($"Classification: {string.Join(", ", classifications)}");
         sb.AppendLine();
@@ -452,13 +452,13 @@ public class OpenAiLlmService : ILlmService
         if (isBadWeather)
         {
             sb.Append($"Given the current weather conditions in {weather.LocationName} ");
-            sb.Append($"({weather.TemperatureC:F0}�C, {weather.ConditionText}), ");
+            sb.Append($"({weather.TemperatureC:F0}°C, {weather.ConditionText}), ");
             sb.Append("we recommend focusing on indoor activities. ");
         }
         else
         {
             sb.Append($"The weather in {weather.LocationName} looks great ");
-            sb.Append($"({weather.TemperatureC:F0}�C, {weather.ConditionText})! ");
+            sb.Append($"({weather.TemperatureC:F0}°C, {weather.ConditionText})! ");
             sb.Append("It's a perfect day to explore outdoor activities. ");
         }
 
@@ -494,7 +494,7 @@ public class OpenAiLlmService : ILlmService
 
         sb.AppendLine($"Here's what I found for {location} {dateStr}!");
         sb.AppendLine();
-        sb.AppendLine($"**Weather:** {weather.TemperatureC:F0}�C, {weather.ConditionText}");
+        sb.AppendLine($"**Weather:** {weather.TemperatureC:F0}°C, {weather.ConditionText}");
 
         if (isBadWeather)
         {
