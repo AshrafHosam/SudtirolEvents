@@ -41,15 +41,11 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 // Add CORS for Angular frontend
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAngular", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:4200",
-                "http://localhost:4201",
-                "https://localhost:4200")
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
     });
 });
 
@@ -74,7 +70,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowAngular");
+app.UseCors("AllowAll");
 
 app.UseAuthorization();
 
